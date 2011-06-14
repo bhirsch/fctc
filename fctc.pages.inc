@@ -6,6 +6,22 @@
  */
 
 //---------------------------------------------------------/
+// path fctc/tracking/aggregate-data                       /
+//---------------------------------------------------------/
+/**
+ * Callback for path fctc/tracking/aggregate data.
+ * 
+ * @return $build
+ *  Renderable array.
+ */
+function fctc_tracking_aggregate_data() {
+  $build = array();
+
+
+  return $build;
+}
+
+//---------------------------------------------------------/
 // path fctc/tracking/in-transit                           /
 //---------------------------------------------------------/
 /**
@@ -165,7 +181,7 @@ function theme_fctc_tracking_sent_received($elements) {
  * @return $form
  *  Form array.
  */
-function fctc_tracing_form($form, $form_state) {
+function fctc_trace($form, $form_state) {
   if ($id = arg(2)) {
     $data = fctc_get_data();
   }
@@ -212,58 +228,9 @@ function fctc_tracing_form($form, $form_state) {
 /**
  * Submit handler for fctc_tracing_form.
  */
-function fctc_tracing_form_submit($form, &$form_state) {
+function fctc_trace_submit($form, &$form_state) {
   $id = check_plain($form_state['values']['fctc_id']);
   $path = "fctc/tracing/$id";
   $form_state['redirect'] = array($path);
 
-}
-
-//------------------------------------------------------/
-// Helper functions                                     /
-//------------------------------------------------------/
-/**
- * Get all cached RDF data and store it in one big array.
- * Use this for processing data for track and trace examples.
- *
- * Make these values: 
- *   s, subject, e.g. http://localhost/countryx/node/20
- *   p, predicate, e.g. http://this.doesnt.really.get.checked.com/id
- *   o, object, e.g. 12345
- * Look like this:  
- *   $data['subject']['predicate'] = 'object';
- * 
- * @todo This is an RDF/SPARQL hack but it will make prototyping a lot faster
- * without getting bogged down in SPARQL syntax.
- * 
- * @return $data
- *  Array of sanitized shipment data in the following format:  
- *  $data['subject']['predicate'] = 'object';
- */
-function fctc_get_data($short_predicate = TRUE) {
-  // Get RDF data from SPARQL endpoint.
-  global $base_url; 
-  $endpoint = $base_url . '/sparql';
-  $query = 'SELECT DISTINCT * WHERE { '
-         . '  GRAPH ?g { ?s ?p ?o . } '
-         . '}';
-  $sparql_results = sparql_request($query, $endpoint);
-
-  // Convert RDF/SPARQL data to an array.
-  $data = array();
-  foreach ($sparql_results['result']['rows'] as $row) {
-    // Sanitize data. 
-    $subject = check_plain($row['s']);
-    $predicate = check_plain($row['p']);
-    $object = check_plain($row['o']);
-    // Shorten predicate from this: http://this.doesnt.really.get.checked.com/id
-    // to this: id.
-    if ($short_predicate) {
-      $position = strripos($predicate, '/') + 1;
-      $predicate = substr($predicate, $position);
-    }
-    $data[$subject][$predicate] = $object;
-  }
-
-  return $data;
 }

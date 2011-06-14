@@ -45,7 +45,7 @@ function fctc_menu() {
   );
   $items['fctc/tracing'] = array(
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('fctc_tracing_form'),
+    'page arguments' => array('fctc_trace'),
     'title' => 'Tracing',
     'access arguments' => array('access content'),
     'file' => 'fctc.pages.inc',
@@ -76,4 +76,208 @@ function fctc_theme() {
     ),  
     // */
   );
+}
+
+/**
+ * Implements hook_block_info().
+ */
+function fctc_block_info() {
+  $blocks = array();
+  $blocks['track form']['info'] = t('Tracking Form');
+  return $blocks;
+}
+
+/**
+ * Implements hook_block_view().
+ */
+function fctc_block_view($delta) {
+  $block = array();
+
+  switch ($delta) {
+    case 'track form':
+      $subject = t('Track Shipments Query Builder');
+      $content = drupal_get_form('fctc_track');
+    break;
+  }
+  $block['subject'] = $subject;
+  $block['content'] = $content;
+  
+  return $block;
+}
+
+/**
+ * @return $form
+ *  Form array. 
+ */
+function fctc_track() {
+  $data = fctc_get_data();
+
+  // Recipient.
+  $form['to'] = array(
+    '#type' => 'select',
+    '#title' => t('Recipient'),
+    '#default_value' => '',
+    '#options' => _fctc_track_options($data, 'to'),
+  );
+  // Sender.
+  $form['from'] = array(
+    '#type' => 'select',
+    '#title' => t('Sender'),
+    '#default_value' => '',
+    '#options' => _fctc_track_options($data, 'from'),
+  );
+  // To country.
+  $form['destination'] = array(
+    '#type' => 'select',
+    '#title' => t('To Country'),
+    '#default_value' => '',
+    '#options' => _fctc_track_options($data, 'destination'),
+  );
+  // From country.
+  $form['origin'] = array(
+    '#type' => 'select',
+    '#title' => t('From Country'),
+    '#default_value' => '',
+    '#options' => _fctc_track_options($data, 'origin'),
+  );
+  // Final destination.
+  $form['final-destination'] = array(
+    '#type' => 'select',
+    '#title' => t('Final Destination'),
+    '#default_value' => '',
+    '#options' => _fctc_track_options($data, 'final-destination'),
+  );
+  // Shipment description (sent/received).
+  $form['description'] = array(
+    '#type' => 'select',
+    '#title' => t('Shipment Description'),
+    '#default_value' => '',
+    '#options' => array(
+      '' => t('<none>'),
+      'sent' => t('sent'),
+      'received' => t('received'),
+    ),
+  );
+  // Shipment status (0 in transit, 1 received at final destination).
+  $form['status'] = array(
+    '#type' => 'select',
+    '#title' => t('Shipment Status'),
+    '#default_value' => '',
+    '#options' => array(
+      '' => t('<none>'),
+      '0' => t('In Transit'),
+      '1' => t('Received at Final Destination'),
+    ),
+  );
+  // Date range.
+  $form['before-date'] = array(
+    '#type' => 'date_popup',
+    '#title' => t('Before Date'),
+    '#date_type' => DATE_UNIX,
+    '#date_format' => 'd/m/Y',
+  );
+  $form['after-date'] = array(
+    '#type' => 'date_popup',
+    '#title' => t('After Date'),
+    '#date_type' => DATE_UNIX,
+    '#date_format' => 'd/m/Y',
+  );
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Run Query'),
+  );
+ 
+  return $form;
+}
+
+/**
+ * Submit handler for fctc_track form.
+ */
+function fctc_track_submit($form, &$form_state) {
+  $values = $form_state['values'];
+// dsm($values, 'values');
+  $keys = array(
+    'to',
+    'from',
+    'destination',
+    'origin',
+    'final-destination',
+    'description',
+    'status',
+    'before-date',
+    'after-date',
+  );
+  // CONTINUE HERE
+  
+}
+
+/**
+ * Get all cached RDF data and store it in one big array.
+ * Use this for processing data for track and trace examples.
+ *
+ * Make these values: 
+ *   s, subject, e.g. http://localhost/countryx/node/20
+ *   p, predicate, e.g. http://this.doesnt.really.get.checked.com/id
+ *   o, object, e.g. 12345
+ * Look like this:  
+ *   $data['subject']['predicate'] = 'object';
+ * 
+ * @todo This is an RDF/SPARQL hack but it will make prototyping a lot faster
+ * without getting bogged down in SPARQL syntax.
+ * 
+ * @return $data
+ *  Array of sanitized shipment data in the following format:  
+ *  $data['subject']['predicate'] = 'object';
+ */
+function fctc_get_data($short_predicate = TRUE) {
+  // Get RDF data from SPARQL endpoint.
+  $endpoint = url('sparql', array('absolute' => TRUE));
+  $query = 'SELECT * WHERE {
+            GRAPH ?g { ?s ?p ?o . }
+           }';
+  $sparql_results = sparql_request($query, $endpoint);
+
+  // Convert SPARQL results to a friendlier array.
+  $data = array();
+  foreach ($sparql_results['result']['rows'] as $row) {
+    // Sanitize data. 
+    $subject = check_plain($row['s']);
+    $predicate = check_plain($row['p']);
+    $object = check_plain($row['o']);
+    // Shorten predicate from this: http://this.doesnt.really.get.checked.com/id
+    // to this: id.
+    if ($short_predicate) {
+      $position = strripos($predicate, '/') + 1;
+      $predicate = substr($predicate, $position);
+    }
+    $data[$subject][$predicate] = $object;
+  }
+
+  return $data;
+}
+
+//------------------------------------------------------------------/
+// Internal functions                                               /
+//------------------------------------------------------------------/
+/**
+ * @param $data
+ *  Array. Results of fctc_get_data().
+ * 
+ * @param $delta
+ *  String.
+ * 
+ * @return
+ *  Array. Select options. Recipients.
+ */
+function _fctc_track_options($data, $delta) {
+  $options = array('' => t('<none>'));
+  foreach ($data as $shipment) {
+    if (isset($shipment[$delta])) {
+      if (!empty($shipment[$delta]) && !in_array($shipment[$delta], $options)) {
+        $options[] = check_plain($shipment[$delta]);
+      }
+    }
+  }
+  
+  return $options;  
 }
