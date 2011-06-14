@@ -1,0 +1,79 @@
+<?php 
+/**
+ * @file fctc.module
+ *  Custom module for FCTC-ITP prototype.
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function fctc_menu() {
+  $items = array();
+
+  $items['fctc/tracking/in-transit'] = array(
+    'page callback' => 'fctc_tracking_in_transit',
+    'title' => 'Tracking: Shipments in Transit',
+    'access arguments' => array('access content'),
+    'file' => 'fctc.pages.inc',
+    'type' => MENU_NORMAL_ITEM,
+    'menu_name' => 'fctc',
+  );
+  $items['fctc/tracking/aggregate-data'] = array(
+    'page callback' => 'fctc_tracking_aggregate_data',
+    'title' => 'Tracking: Aggregate Data',
+    'access arguments' => array('access content'),
+    'file' => 'fctc.pages.inc',
+    'type' => MENU_NORMAL_ITEM,
+    'menu_name' => 'fctc',
+  );
+  $items['fctc/tracking/routes'] = array(
+    'page callback' => 'fctc_tracking_routes',
+    'title' => 'Tracking: Routes',
+    'access arguments' => array('access content'),
+    'file' => 'fctc.pages.inc',
+    'type' => MENU_NORMAL_ITEM,
+    'menu_name' => 'fctc',
+  );
+  // @todo Replace this with Aggregate Data
+  $items['fctc/tracking/sent-received'] = array(
+    'page callback' => 'fctc_tracking_sent_received_page',
+    'title' => 'Tracking: Sent v. Recieved',
+    'access arguments' => array('access content'),
+    'file' => 'fctc.pages.inc',
+    'type' => MENU_NORMAL_ITEM,
+    'menu_name' => 'fctc',
+  );
+  $items['fctc/tracing'] = array(
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('fctc_tracing_form'),
+    'title' => 'Tracing',
+    'access arguments' => array('access content'),
+    'file' => 'fctc.pages.inc',
+    'type' => MENU_NORMAL_ITEM,
+    'menu_name' => 'fctc',
+  );
+
+  return $items; 
+}
+
+/**
+ * Implements hook_theme().
+ */
+function fctc_theme() {
+  return array(
+    'fctc_tracking_in_transit' => array(
+      'render element' => 'tracking data',
+      'file' => 'fctc.pages.inc',
+    ),  
+    'fctc_tracking_sent_received' => array(
+      'render element' => 'tracking data',
+      'file' => 'fctc.pages.inc',
+    ),  
+    /*
+    'fctc_tracing' => array(
+      'render element' => 'tracing data',
+      'file' => 'fctc.pages.inc',
+    ),  
+    // */
+  );
+}

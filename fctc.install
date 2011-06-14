@@ -1,0 +1,15 @@
+<?php
+/**
+ * @file fctc.install
+ */
+/**
+ * Implements hook_enable().
+ */
+function fctc_enable() {
+  $menu = array(
+    'menu_name' => 'fctc',
+    'title' => 'FCTC-ITP',
+    'description' => 'Items for FCTC-ITP track and trace prototype.'
+  );  
+  menu_save($menu);
+}

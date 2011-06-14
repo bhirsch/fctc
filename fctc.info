@@ -1,0 +1,6 @@
+name = FCTC
+description = Drupal module for FCTC-ITP prototype
+package = RDF
+version = VERSION
+core = 7.x
+dependencies[] = rdf
