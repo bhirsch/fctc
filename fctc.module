@@ -267,6 +267,7 @@ function fctc_count_results($params, $data) {
 
   // Test query criteria against each shipment record. 
   foreach ($data as $shipment) {
+    //dsm($shipment, 'shipment');
     // All values must match.
     foreach ($params as $param => $value) {
       if (isset($shipment[$param]) && $shipment[$param] == $value) {
@@ -274,13 +275,13 @@ function fctc_count_results($params, $data) {
       }
       // Handle cases where $shipment[$param] will not equal $value,
       // specifically: before date, after date, status.
-      else if ($param == 'before-date' && $shipment['date'] < fctc_datestamp($value)) {
+      else if ($param == 'before-date' && isset($shipment['date']) && $shipment['date'] < fctc_datestamp($value)) {
         $match = TRUE;
       }
-      else if ($param == 'after-date' && $shipment['date'] > fctc_datestamp($value)) {
+      else if ($param == 'after-date' && isset($shipment['date']) && $shipment['date'] > fctc_datestamp($value)) {
         $match = TRUE;
       }
-      else if ($param == 'status' && ((!$shipment['status'] && !$value) || ($shipment['status'] && $value)) ) {
+      else if ($param == 'status' && isset($shipment['status']) && ((!$shipment['status'] && !$value) || ($shipment['status'] && $value)) ) {
         $match = TRUE;
       }
       else {
