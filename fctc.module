@@ -19,10 +19,11 @@ function fctc_menu() {
     'menu_name' => 'fctc',
   );
   $items['fctc/tracking/aggregate-data'] = array(
-    'page callback' => 'fctc_tracking_aggregate_data',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('fctc_track'),
     'title' => 'Tracking: Aggregate Data',
     'access arguments' => array('access content'),
-    'file' => 'fctc.pages.inc',
+//    'file' => 'fctc.pages.inc',
     'type' => MENU_NORMAL_ITEM,
     'menu_name' => 'fctc',
   );
@@ -30,7 +31,7 @@ function fctc_menu() {
     'page callback' => 'fctc_tracking_routes',
     'title' => 'Tracking: Routes',
     'access arguments' => array('access content'),
-    'file' => 'fctc.pages.inc',
+//    'file' => 'fctc.pages.inc',
     'type' => MENU_NORMAL_ITEM,
     'menu_name' => 'fctc',
   );

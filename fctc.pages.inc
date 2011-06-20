@@ -6,22 +6,6 @@
  */
 
 //---------------------------------------------------------/
-// path fctc/tracking/aggregate-data                       /
-//---------------------------------------------------------/
-/**
- * Callback for path fctc/tracking/aggregate data.
- * 
- * @return $build
- *  Renderable array.
- */
-function fctc_tracking_aggregate_data() {
-  $build = array();
-
-
-  return $build;
-}
-
-//---------------------------------------------------------/
 // path fctc/tracking/in-transit                           /
 //---------------------------------------------------------/
 /**
@@ -103,73 +87,6 @@ function theme_fctc_tracking_in_transit($element) {
   $variables['rows'] = $rows;
   $output = theme('table', $variables);
 
-  return $output;
-}
-
-//---------------------------------------------------------/
-// fctc/tracking/sent-received                             /
-//---------------------------------------------------------/
-/**
- * Callback for fctc/tracking/sent-received.
- * 
- * @return $build
- *  Render array.
- *
- * @todo This relies of data being cached in a local 
- *   sparql endpoint. If prototype requires larger scale or higher
- *   volume of data, make this configureable to point to a remote 
- *   sparql endpoint.
- */
-function fctc_tracking_sent_received_page() {
-  global $base_url; 
-  $endpoint = $base_url . '/sparql';
-  $build = array('#theme' => 'fctc_tracking_sent_received');
-
-  // Total number of shipments sent.
-  // Count the total number of unique identifiers, not the number of shipments
-  // sent. Otherwise we will double count shipments every time they are sent
-  // while they are still legitimately in transit.
-  $query = 'SELECT DISTINCT ?p ?o WHERE {
-             GRAPH ?g { ?s ?p ?o . } . FILTER regex(?p, "id")
-           }';
-  $sparql_results = sparql_request($query, $endpoint);
-  $total_sent = count($sparql_results['result']['rows']);
-  $build['total_sent'] = $total_sent;
-
-  // Total number of shipments received in final destination. 
-  $query = "SELECT * WHERE {
-              GRAPH ?g { ?s ?p ?o . } 
-              . FILTER regex(?p, 'status') 
-              . FILTER regex(?o, '1')
-            }";
-  $sparql_results = sparql_request($query, $endpoint);
-  $total_received = count($sparql_results['result']['rows']);
-  $build['total_received'] = $total_received;
-
-  // Report bad data. Every shipment can be sent and received multiple times
-  // en route to its final destination. But every shipment only has one 
-  // final destination. Check to see if any IDs are reported as arriving at
-  // a final destination more than once.
-  // @TODO
-
-  return $build;
-}
-
-/**
- * Callback for theming tracking/sent-received page.
- */
-function theme_fctc_tracking_sent_received($elements) {
-  $output = '';
-  $tracking_data = $elements['tracking data'];
-  
-  $shipments_sent = t('Shipments Sent');
-  $shipments_received = t('Shipments Received');
-  $total_sent = $tracking_data['total_sent'];
-  $total_received = $tracking_data['total_received'];
-
-  $output .= "<h1>$shipments_sent: $total_sent</h1>";
-  $output .= "<h1>$shipments_received: $total_received</h1>";
-  
   return $output;
 }
 
