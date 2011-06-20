@@ -95,7 +95,7 @@ function fctc_block_view($delta) {
 
   switch ($delta) {
     case 'track form':
-      $subject = t('Track Shipments Query Builder');
+      $subject = '';
       $content = drupal_get_form('fctc_track');
     break;
   }
@@ -112,58 +112,46 @@ function fctc_block_view($delta) {
 function fctc_track($form, &$form_state) {
   $data = fctc_get_data();
 
-  // Get any values from last submission.
-  $values = (isset($form_state['values'])) ? $form_state['values'] : array();
-  $to = (isset($values['to'])) ? check_plain($values['to']) : '';
-  $from = (isset($values['from'])) ? check_plain($values['from']) : '';
-  $destination = (isset($values['destination'])) ? check_plain($values['destination']) : '';
-  $origin = (isset($values['origin'])) ? check_plain($values['origin']) : '';
-  $final_destination = (isset($values['final-destination'])) ? check_plain($values['final-destination']) : '';
-  $description = (isset($values['description'])) ? check_plain($values['description']) : '';
-  $status = (isset($values['status'])) ? check_plain($values['status']) : '';
-  $before_date = (isset($values['before-date'])) ? check_plain($values['before-date']) : '';
-  $after_date = (isset($values['after-date'])) ? check_plain($values['after-date']) : '';
-
+  $form['form header'] = array(
+    '#type' => 'item',
+    '#title' => t('Track Shipments: Query Builder'),
+    '#prefix' => '<h1>',
+    '#suffix' => '</h1>',
+  );    
   // Recipient.
   $form['to'] = array(
     '#type' => 'select',
     '#title' => t('Recipient'),
-    '#default_value' => $to,
     '#options' => _fctc_track_options($data, 'to'),
   );
   // Sender.
   $form['from'] = array(
     '#type' => 'select',
     '#title' => t('Sender'),
-    '#default_value' => $from,
     '#options' => _fctc_track_options($data, 'from'),
   );
   // To country.
   $form['destination'] = array(
     '#type' => 'select',
     '#title' => t('To Country'),
-    '#default_value' => $destination,
     '#options' => _fctc_track_options($data, 'destination'),
   );
   // From country.
   $form['origin'] = array(
     '#type' => 'select',
     '#title' => t('From Country'),
-    '#default_value' => $origin,
     '#options' => _fctc_track_options($data, 'origin'),
   );
   // Final destination.
   $form['final-destination'] = array(
     '#type' => 'select',
     '#title' => t('Final Destination'),
-    '#default_value' => $final_destination,
     '#options' => _fctc_track_options($data, 'final-destination'),
   );
   // Shipment description (sent/received).
   $form['description'] = array(
     '#type' => 'select',
     '#title' => t('Shipment Description'),
-    '#default_value' => $description,
     '#options' => array(
       '' => t('<none>'),
       'sent' => t('sent'),
@@ -174,7 +162,6 @@ function fctc_track($form, &$form_state) {
   $form['status'] = array(
     '#type' => 'select',
     '#title' => t('Shipment Status'),
-    '#default_value' => $status,
     '#options' => array(
       '' => t('<none>'),
       '0' => t('In Transit'),
@@ -187,19 +174,22 @@ function fctc_track($form, &$form_state) {
     '#title' => t('Before Date'),
     '#date_type' => DATE_UNIX,
     '#date_format' => 'd/m/Y',
-    '#default_value' => $before_date,
   );
   $form['after-date'] = array(
     '#type' => 'date_popup',
     '#title' => t('After Date'),
     '#date_type' => DATE_UNIX,
     '#date_format' => 'd/m/Y',
-    '#default_value' => $after_date,
   );
   $form['submit'] = array(
     '#type' => 'submit',
     '#value' => t('Run Query'),
   );
+
+  // If form was rebuilt, display results from last query.
+  if ($form_state['rebuild']) {
+    $form = _fctc_track_results($form, $form_state['values'], $data);
+  }
  
   return $form;
 }
@@ -211,6 +201,12 @@ function fctc_track_submit(&$form, &$form_state) {
   $form_state['rebuild'] = TRUE;
 }
 
+//-----------------------------------------------------------------/
+// Helper functions for processing data.                           /
+//                                                                 /
+// Note: These really only work for prototyping. These functions   /
+// were easy and fast to write. But they won't scale.              /
+//-----------------------------------------------------------------/
 /**
  * Get all cached RDF data and store it in one big array.
  * Use this for processing data for track and trace examples.
@@ -256,6 +252,69 @@ function fctc_get_data($short_predicate = TRUE) {
   return $data;
 }
 
+/**
+ * @param $params
+ *  Array. Parameters submitted via $form_state['values'] from a submitted 
+ *  fctc_tracking form.
+ * 
+ * @param $count
+ *  Integer. Number of records matching query criteria.
+ */
+function fctc_count_results($params, $data) {
+  $count = 0;
+  //dsm($params, 'params');
+  //dsm($data, 'data');
+
+  // Test query criteria against each shipment record. 
+  foreach ($data as $shipment) {
+    // All values must match.
+    foreach ($params as $param => $value) {
+      if (isset($shipment[$param]) && $shipment[$param] == $value) {
+        $match = TRUE;
+      }
+      // Handle cases where $shipment[$param] will not equal $value,
+      // specifically: before date, after date, status.
+      else if ($param == 'before-date' && $shipment['date'] < fctc_datestamp($value)) {
+        $match = TRUE;
+      }
+      else if ($param == 'after-date' && $shipment['date'] > fctc_datestamp($value)) {
+        $match = TRUE;
+      }
+      else if ($param == 'status' && ((!$shipment['status'] && !$value) || ($shipment['status'] && $value)) ) {
+        $match = TRUE;
+      }
+      else {
+        $match = FALSE; 
+        break;
+      }
+    }
+    if ($match) {
+      // Increment count for each match.
+      //dsm($shipment, 'shipment match');
+      $count++;  
+    }
+  }
+
+  return $count;
+}
+
+/**
+ * @param $date
+ *   String. yyyy-mm-dd.
+ * 
+ * @return
+ *  Unix timestamp.
+ */
+function fctc_datestamp($date) {
+  $parts = explode('-', $date);
+  $yyyy = $parts[0];
+  $mm = $parts[1];
+  $dd = $parts[2];
+  $datestamp = mktime(0, 0, 0, $mm, $dd, $yyyy);
+ 
+  return $datestamp;
+}
+
 //------------------------------------------------------------------/
 // Internal functions                                               /
 //------------------------------------------------------------------/
@@ -264,7 +323,7 @@ function fctc_get_data($short_predicate = TRUE) {
  *  Array. Results of fctc_get_data().
  * 
  * @param $delta
- *  String.
+ *  String. Which form element / RDF predicate we're generating options for.
  * 
  * @return
  *  Array. Select options. Recipients.
@@ -274,10 +333,85 @@ function _fctc_track_options($data, $delta) {
   foreach ($data as $shipment) {
     if (isset($shipment[$delta])) {
       if (!empty($shipment[$delta]) && !in_array($shipment[$delta], $options)) {
-        $options[] = check_plain($shipment[$delta]);
+        $value = check_plain($shipment[$delta]);
+        $options[$value] = $value;
       }
     }
   }
   
   return $options;  
 }
+
+/**
+ * To make fctc_track form re-usable as a block, use this function 
+ * to check the path and return different results, depending on which
+ * page the form is being used on.
+ * 
+ * Results are displayed along with rebuilt forms as form items.
+ * 
+ * @param $form
+ *  Form array.
+ * 
+ * @param $values
+ *  $values, $form_state['values'] from last form submission.
+ * 
+ * @param $data
+ *  Array. @see fctc_get_data().
+ * 
+ * @return $form
+ *  Form array.
+ */
+function _fctc_track_results($form, $values, $data) {
+  // Display submitted query criteria above results as form items.
+  $form['results header'] = array(
+    '#type' => 'item',
+    '#title' => t('Track Shipments: Query Results'),
+    '#prefix' => '<h1>',
+    '#suffix' => '</h1>',
+    '#weight' => -2,
+  );
+  $form['results'] = array(
+    '#type' => 'fieldset',
+    '#weight' => -1,
+  );
+  foreach ($values as $key => $value) {
+    $parameters = array();
+    // Only show values with titles, that is, form elements used as 
+    // query parameters.
+    if (isset($form[$key]['#title']) && $value != NULL) {
+      // Hang onto these $params. This makes finding results easier later.
+      $params[$key] = $value;
+      // Get values for form item.
+      $title = $form[$key]['#title'];
+      $name = "item-$key";
+      // Shipment Status values are boolean. The rest are human readable strings.
+      if ($title == 'Shipment Status') {
+        $value = $form[$key]['#options'][$value];
+      }
+      $title = $form[$key]['#title'] . ': ' . $value;
+      // Add form item.
+      $form['results'][$name] = array(
+        '#type' => 'item',
+        '#title' => $title,
+      );    
+    }
+  }
+
+  // Display different results based on path.
+  switch (arg(2)) {
+    // Path: fctc/tracking/aggregate-data
+    case 'aggregate-data': 
+      $count = fctc_count_results($params, $data);
+      $form['results']['results'] = array(
+        '#type' => 'item',
+        '#title' => t('%count shipments match the criteria above.', 
+                    array('%count' => $count)),
+        '#prefix' => '<h2>',
+        '#suffix' => '</h2>',
+      );    
+    break;
+  }
+
+  return $form;
+}
+
