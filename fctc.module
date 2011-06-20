@@ -109,49 +109,61 @@ function fctc_block_view($delta) {
  * @return $form
  *  Form array. 
  */
-function fctc_track() {
+function fctc_track($form, &$form_state) {
   $data = fctc_get_data();
+
+  // Get any values from last submission.
+  $values = (isset($form_state['values'])) ? $form_state['values'] : array();
+  $to = (isset($values['to'])) ? check_plain($values['to']) : '';
+  $from = (isset($values['from'])) ? check_plain($values['from']) : '';
+  $destination = (isset($values['destination'])) ? check_plain($values['destination']) : '';
+  $origin = (isset($values['origin'])) ? check_plain($values['origin']) : '';
+  $final_destination = (isset($values['final-destination'])) ? check_plain($values['final-destination']) : '';
+  $description = (isset($values['description'])) ? check_plain($values['description']) : '';
+  $status = (isset($values['status'])) ? check_plain($values['status']) : '';
+  $before_date = (isset($values['before-date'])) ? check_plain($values['before-date']) : '';
+  $after_date = (isset($values['after-date'])) ? check_plain($values['after-date']) : '';
 
   // Recipient.
   $form['to'] = array(
     '#type' => 'select',
     '#title' => t('Recipient'),
-    '#default_value' => '',
+    '#default_value' => $to,
     '#options' => _fctc_track_options($data, 'to'),
   );
   // Sender.
   $form['from'] = array(
     '#type' => 'select',
     '#title' => t('Sender'),
-    '#default_value' => '',
+    '#default_value' => $from,
     '#options' => _fctc_track_options($data, 'from'),
   );
   // To country.
   $form['destination'] = array(
     '#type' => 'select',
     '#title' => t('To Country'),
-    '#default_value' => '',
+    '#default_value' => $destination,
     '#options' => _fctc_track_options($data, 'destination'),
   );
   // From country.
   $form['origin'] = array(
     '#type' => 'select',
     '#title' => t('From Country'),
-    '#default_value' => '',
+    '#default_value' => $origin,
     '#options' => _fctc_track_options($data, 'origin'),
   );
   // Final destination.
   $form['final-destination'] = array(
     '#type' => 'select',
     '#title' => t('Final Destination'),
-    '#default_value' => '',
+    '#default_value' => $final_destination,
     '#options' => _fctc_track_options($data, 'final-destination'),
   );
   // Shipment description (sent/received).
   $form['description'] = array(
     '#type' => 'select',
     '#title' => t('Shipment Description'),
-    '#default_value' => '',
+    '#default_value' => $description,
     '#options' => array(
       '' => t('<none>'),
       'sent' => t('sent'),
@@ -162,7 +174,7 @@ function fctc_track() {
   $form['status'] = array(
     '#type' => 'select',
     '#title' => t('Shipment Status'),
-    '#default_value' => '',
+    '#default_value' => $status,
     '#options' => array(
       '' => t('<none>'),
       '0' => t('In Transit'),
@@ -175,12 +187,14 @@ function fctc_track() {
     '#title' => t('Before Date'),
     '#date_type' => DATE_UNIX,
     '#date_format' => 'd/m/Y',
+    '#default_value' => $before_date,
   );
   $form['after-date'] = array(
     '#type' => 'date_popup',
     '#title' => t('After Date'),
     '#date_type' => DATE_UNIX,
     '#date_format' => 'd/m/Y',
+    '#default_value' => $after_date,
   );
   $form['submit'] = array(
     '#type' => 'submit',
@@ -193,22 +207,8 @@ function fctc_track() {
 /**
  * Submit handler for fctc_track form.
  */
-function fctc_track_submit($form, &$form_state) {
-  $values = $form_state['values'];
-// dsm($values, 'values');
-  $keys = array(
-    'to',
-    'from',
-    'destination',
-    'origin',
-    'final-destination',
-    'description',
-    'status',
-    'before-date',
-    'after-date',
-  );
-  // CONTINUE HERE
-  
+function fctc_track_submit(&$form, &$form_state) {
+  $form_state['rebuild'] = TRUE;
 }
 
 /**
