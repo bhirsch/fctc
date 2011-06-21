@@ -14,7 +14,7 @@ function fctc_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('fctc_trace'),
     'title' => 'Tracing',
-    'access arguments' => array('access content'),
+    'access arguments' => array('fctc/tracing'),
     'file' => 'fctc.pages.inc',
     'type' => MENU_NORMAL_ITEM,
     'menu_name' => 'fctc',
@@ -22,7 +22,7 @@ function fctc_menu() {
   $items['fctc/tracking/in-transit'] = array(
     'page callback' => 'fctc_tracking_in_transit',
     'title' => 'Tracking: Shipments in Transit',
-    'access arguments' => array('access content'),
+    'access arguments' => array('fctc/tracking/in-transit'),
     'file' => 'fctc.pages.inc',
     'type' => MENU_NORMAL_ITEM,
     'menu_name' => 'fctc',
@@ -31,7 +31,7 @@ function fctc_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('fctc_track'),
     'title' => 'Tracking: Routes (A)',
-    'access arguments' => array('access content'),
+    'access arguments' => array('fctc/tracking/routes-a'),
 //    'file' => 'fctc.pages.inc',
     'type' => MENU_NORMAL_ITEM,
     'menu_name' => 'fctc',
@@ -40,7 +40,7 @@ function fctc_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('fctc_track'),
     'title' => 'Tracking: Routes (B)',
-    'access arguments' => array('access content'),
+    'access arguments' => array('fctc/tracking/routes-b'),
 //    'file' => 'fctc.pages.inc',
     'type' => MENU_NORMAL_ITEM,
     'menu_name' => 'fctc',
@@ -49,7 +49,7 @@ function fctc_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('fctc_track'),
     'title' => 'Tracking: Query Tool (A)',
-    'access arguments' => array('access content'),
+    'access arguments' => array('fctc/tracking/query-tool-a'),
 //    'file' => 'fctc.pages.inc',
     'type' => MENU_NORMAL_ITEM,
     'menu_name' => 'fctc',
@@ -58,13 +58,32 @@ function fctc_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('fctc_track'),
     'title' => 'Tracking: Query Tool (B)',
-    'access arguments' => array('access content'),
+    'access arguments' => array('fctc/tracking/query-tool-b'),
 //    'file' => 'fctc.pages.inc',
     'type' => MENU_NORMAL_ITEM,
     'menu_name' => 'fctc',
   );
 
   return $items; 
+}
+
+/**
+ * Implements hook_permission().
+ * 
+ * Create a permission for each menu item. These will be used for access
+ * control, menu item by menu item, role by role.
+ */
+function fctc_permission() {
+  $permissions = array();
+
+  $items = fctc_menu();
+  foreach ($items as $path => $values) {
+    $permissions[$path] = array(
+      'title' => t($values['title']),
+    );  
+  }
+  
+  return $permissions;
 }
 
 /**
