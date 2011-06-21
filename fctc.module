@@ -18,29 +18,39 @@ function fctc_menu() {
     'type' => MENU_NORMAL_ITEM,
     'menu_name' => 'fctc',
   );
-  $items['fctc/tracking/aggregate-data'] = array(
+  $items['fctc/tracking/aggregate-data-a'] = array(
     'page callback' => 'drupal_get_form',
     'page arguments' => array('fctc_track'),
-    'title' => 'Tracking: Aggregate Data',
+    'title' => 'Tracking: Aggregate Data (A)',
     'access arguments' => array('access content'),
 //    'file' => 'fctc.pages.inc',
     'type' => MENU_NORMAL_ITEM,
     'menu_name' => 'fctc',
   );
-  $items['fctc/tracking/routes'] = array(
-    'page callback' => 'fctc_tracking_routes',
-    'title' => 'Tracking: Routes',
+  $items['fctc/tracking/aggregate-data-b'] = array(
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('fctc_track'),
+    'title' => 'Tracking: Aggregate Data (B)',
     'access arguments' => array('access content'),
 //    'file' => 'fctc.pages.inc',
     'type' => MENU_NORMAL_ITEM,
     'menu_name' => 'fctc',
   );
-  // @todo Replace this with Aggregate Data
-  $items['fctc/tracking/sent-received'] = array(
-    'page callback' => 'fctc_tracking_sent_received_page',
-    'title' => 'Tracking: Sent v. Recieved',
+  $items['fctc/tracking/routes-a'] = array(
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('fctc_track'),
+    'title' => 'Tracking: Routes (A)',
     'access arguments' => array('access content'),
-    'file' => 'fctc.pages.inc',
+//    'file' => 'fctc.pages.inc',
+    'type' => MENU_NORMAL_ITEM,
+    'menu_name' => 'fctc',
+  );
+  $items['fctc/tracking/routes-b'] = array(
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('fctc_track'),
+    'title' => 'Tracking: Routes (B)',
+    'access arguments' => array('access content'),
+//    'file' => 'fctc.pages.inc',
     'type' => MENU_NORMAL_ITEM,
     'menu_name' => 'fctc',
   );
@@ -115,21 +125,15 @@ function fctc_track($form, &$form_state) {
 
   $form['form header'] = array(
     '#type' => 'item',
-    '#title' => t('Track Shipments: Query Builder'),
+    '#title' => t('Query Builder'),
     '#prefix' => '<h1>',
     '#suffix' => '</h1>',
   );    
-  // Recipient.
-  $form['to'] = array(
+  // From country.
+  $form['origin'] = array(
     '#type' => 'select',
-    '#title' => t('Recipient'),
-    '#options' => _fctc_track_options($data, 'to'),
-  );
-  // Sender.
-  $form['from'] = array(
-    '#type' => 'select',
-    '#title' => t('Sender'),
-    '#options' => _fctc_track_options($data, 'from'),
+    '#title' => t('From Country'),
+    '#options' => _fctc_track_options($data, 'origin'),
   );
   // To country.
   $form['destination'] = array(
@@ -137,11 +141,17 @@ function fctc_track($form, &$form_state) {
     '#title' => t('To Country'),
     '#options' => _fctc_track_options($data, 'destination'),
   );
-  // From country.
-  $form['origin'] = array(
+  // Sender.
+  $form['from'] = array(
     '#type' => 'select',
-    '#title' => t('From Country'),
-    '#options' => _fctc_track_options($data, 'origin'),
+    '#title' => t('Sender'),
+    '#options' => _fctc_track_options($data, 'from'),
+  );
+  // Recipient.
+  $form['to'] = array(
+    '#type' => 'select',
+    '#title' => t('Recipient'),
+    '#options' => _fctc_track_options($data, 'to'),
   );
   // Final destination.
   $form['final-destination'] = array(
@@ -154,19 +164,9 @@ function fctc_track($form, &$form_state) {
     '#type' => 'select',
     '#title' => t('Shipment Description'),
     '#options' => array(
-      '' => t('<none>'),
+      '' => t('<any>'),
       'sent' => t('sent'),
       'received' => t('received'),
-    ),
-  );
-  // Shipment status (0 in transit, 1 received at final destination).
-  $form['status'] = array(
-    '#type' => 'select',
-    '#title' => t('Shipment Status'),
-    '#options' => array(
-      '' => t('<none>'),
-      '0' => t('In Transit'),
-      '1' => t('Received at Final Destination'),
     ),
   );
   // Date range.
@@ -182,10 +182,26 @@ function fctc_track($form, &$form_state) {
     '#date_type' => DATE_UNIX,
     '#date_format' => 'd/m/Y',
   );
+  // Shipment status (0 in transit, 1 received at final destination).
+  $form['status'] = array(
+    '#type' => 'select',
+    '#title' => t('Shipment Status'),
+    '#options' => array(
+      '' => t('<all>'),
+      '0' => t('In Transit'),
+      '1' => t('Received at Final Destination'),
+    ),
+    '#description' => t('A shipment that has been sent but not received at its '
+                      . 'final destiation is considered "in transit". Shipments '
+                      . 'that appear to be in transit indefinitely are suspicious.'),
+  );
   $form['submit'] = array(
     '#type' => 'submit',
     '#value' => t('Run Query'),
   );
+
+  // Show limited version of form on certan paths
+  $form = fctc_track_form_element_access($form);
 
   // If form was rebuilt, display results from last query.
   if ($form_state['rebuild']) {
@@ -258,16 +274,24 @@ function fctc_get_data($short_predicate = TRUE) {
  *  Array. Parameters submitted via $form_state['values'] from a submitted 
  *  fctc_tracking form.
  * 
- * @param $count
- *  Integer. Number of records matching query criteria.
+ * @param $delta
+ *  String. What kind of results should be returned. Options:
+ *  - count
+ *  - list
+ *
+ * @return
+ *  count, Integer
+ *  list, data for table?
  */
-function fctc_count_results($params, $data) {
-  $count = 0;
-  //dsm($params, 'params');
-  //dsm($data, 'data');
+function fctc_results($params, $data, $delta) {
+  if (!$params) {
+    return FALSE;  
+  }
+
+  $results = array();
 
   // Test query criteria against each shipment record. 
-  foreach ($data as $shipment) {
+  foreach ($data as $uri => $shipment) {
     //dsm($shipment, 'shipment');
     // All values must match.
     foreach ($params as $param => $value) {
@@ -291,13 +315,69 @@ function fctc_count_results($params, $data) {
       }
     }
     if ($match) {
-      // Increment count for each match.
       //dsm($shipment, 'shipment match');
-      $count++;  
+      $results[$uri] = $shipment;
     }
   }
 
-  return $count;
+  if (!$results) {
+    return FALSE;  
+  }
+
+  switch ($delta) {
+    case 'count': 
+      return count($results);
+    break;
+
+    case 'list':
+      return fctc_list_results($results);
+    break;
+  }
+}
+
+/**
+ * @param $results
+ *  Array of shipments matching fctc_track form criteria.
+ * 
+ * @return
+ *  $variables to be passed to theme_table().
+ */
+function fctc_list_results($results) {
+  $variables = array();
+  
+  $header = array(
+    array('data' => t('')),
+    array('data' => t('Unique Identifier')),
+    array('data' => t('From Country')),
+    array('data' => t('To Country')), 
+    array('data' => t('Description')),
+    array('data' => t('Date')),
+  );
+
+  $order_by = array();
+  foreach ($results as $uri => $value) {
+    $order_by[$uri] = $value['date'];
+  }
+  asort($order_by);
+
+  $rows = array();
+  $i = 1;
+  foreach ($order_by as $uri => $date) {
+    $rows[] = array(
+      $i,
+      l($results[$uri]['id'], 'fctc/tracing/' . $results[$uri]['id']),
+      $results[$uri]['origin'],
+      $results[$uri]['destination'],
+      $results[$uri]['description'],
+      date('d-m-Y', $results[$uri]['date']),
+    );
+    $i++;
+  }
+
+  $variables['header'] = $header;
+  $variables['rows'] = $rows;
+
+  return $variables;
 }
 
 /**
@@ -331,7 +411,7 @@ function fctc_datestamp($date) {
  *  Array. Select options. Recipients.
  */
 function _fctc_track_options($data, $delta) {
-  $options = array('' => t('<none>'));
+  $options = array('' => t('<any>'));
   foreach ($data as $shipment) {
     if (isset($shipment[$delta])) {
       if (!empty($shipment[$delta]) && !in_array($shipment[$delta], $options)) {
@@ -367,7 +447,7 @@ function _fctc_track_results($form, $values, $data) {
   // Display submitted query criteria above results as form items.
   $form['results header'] = array(
     '#type' => 'item',
-    '#title' => t('Track Shipments: Query Results'),
+    '#title' => t('Query Results'),
     '#prefix' => '<h1>',
     '#suffix' => '</h1>',
     '#weight' => -2,
@@ -376,11 +456,12 @@ function _fctc_track_results($form, $values, $data) {
     '#type' => 'fieldset',
     '#weight' => -1,
   );
+  $params = array();
   foreach ($values as $key => $value) {
-    $parameters = array();
     // Only show values with titles, that is, form elements used as 
     // query parameters.
-    if (isset($form[$key]['#title']) && $value != NULL) {
+    if ((isset($form[$key]['#title']) && $value != NULL )
+      || ($key == 'status' && strlen($value) > 0)) {
       // Hang onto these $params. This makes finding results easier later.
       $params[$key] = $value;
       // Get values for form item.
@@ -403,7 +484,7 @@ function _fctc_track_results($form, $values, $data) {
   switch (arg(2)) {
     // Path: fctc/tracking/aggregate-data
     case 'aggregate-data': 
-      $count = fctc_count_results($params, $data);
+      $count = fctc_results($params, $data, 'count');
       $form['results']['results'] = array(
         '#type' => 'item',
         '#title' => t('%count shipments match the criteria above.', 
@@ -412,8 +493,84 @@ function _fctc_track_results($form, $values, $data) {
         '#suffix' => '</h2>',
       );    
     break;
+
+    // Path: fctc/tracking/routes-a
+    case 'routes-a': 
+      if ($count = fctc_results($params, $data, 'count')) {
+      $form['results']['results'] = array(
+        '#type' => 'item',
+        '#title' => t('%count shipments match the criteria above.', 
+                    array('%count' => $count)),
+        '#prefix' => '<h2>',
+        '#suffix' => '</h2>',
+      );    
+      }
+      else {
+        $form['results']['results'] = array(
+          '#type' => 'item',
+          '#title' => t('No results.'),
+          '#prefix' => '<h2>',
+          '#suffix' => '</h2>',
+        );    
+      }
+    break;
+
+    // Path: fctc/tracking/routes-b
+    case 'routes-b': 
+      if ($variables = fctc_results($params, $data, 'list')) {
+        $form['results']['results header'] = array(
+          '#type' => 'item',
+          '#title' => t('The following shipments match the criteria above:'),
+          '#prefix' => '<h2>',
+          '#suffix' => '</h2>',
+        );    
+        $form['results']['results'] = array(
+          '#type' => 'markup',
+          '#markup' => theme('table', $variables),
+        );    
+      }
+      else {
+        $form['results']['results'] = array(
+          '#type' => 'item',
+          '#title' => t('No results.'),
+          '#prefix' => '<h2>',
+          '#suffix' => '</h2>',
+        );    
+      }
+    break;
   }
 
   return $form;
 }
 
+/**
+ * Show limited version of query builder form for certain paths.
+ *
+ * @param $form
+ *  Form array.
+ * 
+ * @return $form
+ *  Form array.
+ */
+function fctc_track_form_element_access($form) {
+  switch (arg(2)) {
+    case 'routes-a':
+      $form['to']['#access'] = FALSE;
+      $form['from']['#access'] = FALSE;
+      $form['final-destination']['#access'] = FALSE;
+      $form['description']['#access'] = FALSE;
+      //$form['status']['#value'] = 0;
+      //$form['status']['#access'] = FALSE;
+    break;
+    case 'routes-b':
+      $form['to']['#access'] = FALSE;
+      $form['from']['#access'] = FALSE;
+      $form['final-destination']['#access'] = FALSE;
+      $form['description']['#access'] = FALSE;
+      //$form['status']['#value'] = 0;
+      //$form['status']['#access'] = FALSE;
+    break;
+  }
+
+  return $form;  
+}
