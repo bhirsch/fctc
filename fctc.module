@@ -5,6 +5,13 @@
  */
 
 /**
+ * Implements hook_rdf_namespaces().
+ */
+fctc_rdf_namespaces() {
+  return array('fctc' => 'http://this.doesnt.really.get.checked.com/');  
+}
+
+/**
  * Implements hook_menu().
  */
 function fctc_menu() {
@@ -18,6 +25,7 @@ function fctc_menu() {
     'file' => 'fctc.pages.inc',
     'type' => MENU_NORMAL_ITEM,
     'menu_name' => 'fctc',
+    'weight' => 1,
   );
   $items['fctc/tracking/in-transit'] = array(
     'page callback' => 'fctc_tracking_in_transit',
@@ -26,6 +34,7 @@ function fctc_menu() {
     'file' => 'fctc.pages.inc',
     'type' => MENU_NORMAL_ITEM,
     'menu_name' => 'fctc',
+    'weight' => 2,
   );
   $items['fctc/tracking/routes-a'] = array(
     'page callback' => 'drupal_get_form',
@@ -35,6 +44,7 @@ function fctc_menu() {
 //    'file' => 'fctc.pages.inc',
     'type' => MENU_NORMAL_ITEM,
     'menu_name' => 'fctc',
+    'weight' => 3,
   );
   $items['fctc/tracking/routes-b'] = array(
     'page callback' => 'drupal_get_form',
@@ -44,6 +54,7 @@ function fctc_menu() {
 //    'file' => 'fctc.pages.inc',
     'type' => MENU_NORMAL_ITEM,
     'menu_name' => 'fctc',
+    'weight' => 4,
   );
   $items['fctc/tracking/query-tool-a'] = array(
     'page callback' => 'drupal_get_form',
@@ -53,6 +64,7 @@ function fctc_menu() {
 //    'file' => 'fctc.pages.inc',
     'type' => MENU_NORMAL_ITEM,
     'menu_name' => 'fctc',
+    'weight' => 5,
   );
   $items['fctc/tracking/query-tool-b'] = array(
     'page callback' => 'drupal_get_form',
@@ -62,6 +74,7 @@ function fctc_menu() {
 //    'file' => 'fctc.pages.inc',
     'type' => MENU_NORMAL_ITEM,
     'menu_name' => 'fctc',
+    'weight' => 6,
   );
 
   return $items; 
