@@ -7,7 +7,7 @@
 /**
  * Implements hook_rdf_namespaces().
  */
-fctc_rdf_namespaces() {
+function fctc_rdf_namespaces() {
   return array('fctc' => 'http://this.doesnt.really.get.checked.com/');  
 }
 
